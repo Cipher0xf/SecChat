@@ -112,6 +112,7 @@ DWORD WINAPI subThread(LPVOID lpParameter)
 	sockaddr_in client_addr = param->client_addr;
 	printf("  ip:port %s:%d\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
 
+	/* communication */
 	while (true)
 	{
 		/* receive data from client */
