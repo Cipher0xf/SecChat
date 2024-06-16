@@ -67,9 +67,6 @@ A/B可同时在client.cpp的通信窗口输入消息，用[AES密钥]加密后�
 服务端将[序号,发送时间,发送方id/名称,接收方id/名称,消息密文]写入文件[A_B.csv]  
 会话窗口会读取A/B本地的[AES密钥]，实时刷新显示明文  
 
-### 编译  
-g++ server.cpp -lwsock32 -lstdc++ -o server  
-g++ client.cpp -lwsock32 -lstdc++ -o client  
 
 
 
