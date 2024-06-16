@@ -1,9 +1,15 @@
-#include <iostream>
+#include <cstdlib>
 #include <cstring>
+#include <bitset>
+#include <ctime>
 #include <cmath>
+#include <algorithm>
+#include <cstdio>
+#include <iostream>
 using namespace std;
+#include "util.hpp"
+#include "AES.hpp"
 #define ROUND 10
-#define MAX_LENGTH 1000
 
 const uint8_t Sbox[16][16] = {
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -22,7 +28,6 @@ const uint8_t Sbox[16][16] = {
     0x70, 0x3E, 0xB5, 0x66, 0x48, 0x03, 0xF6, 0x0E, 0x61, 0x35, 0x57, 0xB9, 0x86, 0xC1, 0x1D, 0x9E,
     0xE1, 0xF8, 0x98, 0x11, 0x69, 0xD9, 0x8E, 0x94, 0x9B, 0x1E, 0x87, 0xE9, 0xCE, 0x55, 0x28, 0xDF,
     0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16};
-
 const uint8_t re_Sbox[16][16] = {
     0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB,
     0x7C, 0xE3, 0x39, 0x82, 0x9B, 0x2F, 0xFF, 0x87, 0x34, 0x8E, 0x43, 0x44, 0xC4, 0xDE, 0xE9, 0xCB,
@@ -40,35 +45,24 @@ const uint8_t re_Sbox[16][16] = {
     0x60, 0x51, 0x7F, 0xA9, 0x19, 0xB5, 0x4A, 0x0D, 0x2D, 0xE5, 0x7A, 0x9F, 0x93, 0xC9, 0x9C, 0xEF,
     0xA0, 0xE0, 0x3B, 0x4D, 0xAE, 0x2A, 0xF5, 0xB0, 0xC8, 0xEB, 0xBB, 0x3C, 0x83, 0x53, 0x99, 0x61,
     0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D};
-
 const uint8_t mixMatrix[4][4] = {
     0x02, 0x03, 0x01, 0x01,
     0x01, 0x02, 0x03, 0x01,
     0x01, 0x01, 0x02, 0x03,
     0x03, 0x01, 0x01, 0x02};
-
 const uint8_t re_mixMatrix[4][4] = {
     0x0E, 0x0B, 0x0D, 0x09,
     0x09, 0x0E, 0x0B, 0x0D,
     0x0D, 0x09, 0x0E, 0x0B,
     0x0B, 0x0D, 0x09, 0x0E};
+const uint8_t Rcon[10] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
 
-const uint8_t Rcon[10] = {
-    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
-
-uint8_t key[16] = {
-    1, 1, 4, 5,
-    1, 4, 1, 9,
-    1, 9, 8, 1,
-    0, 2, 3, 3};
-uint8_t subKeys[ROUND + 1][16] = {};
-
-void keyGen(uint8_t *key) // generate 128-bit keys for 10 rounds
+void AES::keyGen(uint8_t *key)
 {
     memcpy(subKeys[0], key, 16);
     for (int r = 1; r <= ROUND; r++)
     {
-        uint8_t temp[4];
+        uint8_t temp[4] = {};
         for (int i = 0; i < 4; i++)
         {
             temp[i] = Sbox[subKeys[r - 1][(i + 1) % 4 + 12] >> 4][subKeys[r - 1][(i + 1) % 4 + 12] & 0x0F];
@@ -85,7 +79,18 @@ void keyGen(uint8_t *key) // generate 128-bit keys for 10 rounds
     }
 }
 
-void addRoundKey(uint8_t *block, uint8_t *key)
+uint64_t AES::msgPadding(uint8_t *msg, uint64_t len)
+{
+    int pad = 16 - (len % 16);
+    if (pad == 16)
+        pad = 0;
+    for (int i = len; i < len + pad; i++)
+        msg[i] = pad;
+    len += pad;
+    return len / 16;
+}
+
+void AES::addRoundKey(uint8_t *block, uint8_t *key)
 {
     for (int i = 0; i < 16; i++)
     {
@@ -93,7 +98,7 @@ void addRoundKey(uint8_t *block, uint8_t *key)
     }
 }
 
-void subByte(uint8_t *block)
+void AES::subByte(uint8_t *block)
 {
     for (int i = 0; i < 16; i++)
     {
@@ -101,7 +106,7 @@ void subByte(uint8_t *block)
     }
 }
 
-void re_subByte(uint8_t *block)
+void AES::re_subByte(uint8_t *block)
 {
     for (int i = 0; i < 16; i++)
     {
@@ -109,7 +114,7 @@ void re_subByte(uint8_t *block)
     }
 }
 
-void shiftRows(uint8_t *block)
+void AES::shiftRows(uint8_t *block)
 {
     uint8_t temp[16] = {};
     memcpy(temp, block, 16);
@@ -133,7 +138,7 @@ void shiftRows(uint8_t *block)
     }
 }
 
-void re_shiftRows(uint8_t *block)
+void AES::re_shiftRows(uint8_t *block)
 {
     uint8_t temp[16] = {};
     memcpy(temp, block, 16);
@@ -157,7 +162,7 @@ void re_shiftRows(uint8_t *block)
     }
 }
 
-uint8_t GaloisMult(uint8_t L, uint8_t R) // multiplication in GF(2^7)
+uint8_t AES::GaloisMult(uint8_t L, uint8_t R)
 {
     uint8_t product = 0;
     while (L)
@@ -180,7 +185,7 @@ uint8_t GaloisMult(uint8_t L, uint8_t R) // multiplication in GF(2^7)
     return product;
 }
 
-void mixColumn(uint8_t *block)
+void AES::mixColumn(uint8_t *block)
 {
     uint8_t temp[16] = {};
     memcpy(temp, block, 16);
@@ -197,7 +202,7 @@ void mixColumn(uint8_t *block)
     }
 }
 
-void re_mixColumn(uint8_t *block)
+void AES::re_mixColumn(uint8_t *block)
 {
     uint8_t temp[16] = {};
     memcpy(temp, block, 16);
@@ -214,7 +219,7 @@ void re_mixColumn(uint8_t *block)
     }
 }
 
-void aes_encryption(uint8_t *block)
+void AES::encrypt(uint8_t *block)
 {
     addRoundKey(block, subKeys[0]);
     for (int r = 1; r <= ROUND; r++)
@@ -229,7 +234,7 @@ void aes_encryption(uint8_t *block)
     }
 }
 
-void aes_decryption(uint8_t *block)
+void AES::decrypt(uint8_t *block)
 {
 
     for (int r = ROUND; r >= 1; r--)
@@ -245,89 +250,14 @@ void aes_decryption(uint8_t *block)
     addRoundKey(block, subKeys[0]);
 }
 
-void printByteMatrix(uint8_t *block)
+void AES::printByteMatrix(uint8_t *block)
 {
     for (int i = 0; i < 4; i++)
     {
         for (int j = 0; j < 4; j++)
         {
-            printf("%d ", block[i + j * 4]);
+            printf("%02x ", block[i + j * 4]);
         }
-        cout << endl;
-    }
-}
-
-int main()
-{
-    keyGen(key);
-    // for (int r = 0; r < ROUND + 1; r++)
-    // {
-    //     cout << "roundKey " << r << " :" << endl;
-    //     printByteMatrix(subKeys[r]);
-    //     cout << endl;
-    // }
-
-    // uint8_t msg[16] = {
-    //     0, 1, 2, 3,
-    //     4, 5, 6, 7,
-    //     8, 9, 10, 11,
-    //     12, 13, 14, 15};
-
-    // cout << "message:" << endl;
-    // printByteMatrix(msg);
-
-    // aes_encryption(msg);
-    // cout << "ciphertext:" << endl;
-    // printByteMatrix(msg);
-
-    // aes_decryption(msg);
-    // cout << "plaintext:" << endl;
-    // printByteMatrix(msg);
-
-    char message[MAX_LENGTH] = "";
-    char ciphertext[MAX_LENGTH] = "";
-    char plaintext[MAX_LENGTH] = "";
-    int t = 20;
-    while (t--)
-    {
-        cout<<"\nPlease input the message:\n";
-        memset(message, '\0', sizeof(message));
-        memset(ciphertext, '\0', sizeof(ciphertext));
-        memset(plaintext, '\0', sizeof(plaintext));
-        cin >> message;
-        int length = strlen(message);
-        int pad = 16 - (length % 16);
-        if (pad == 16) {
-            pad = 0;
-        }
-        for (int i = length; i < length + pad; i++) {
-            message[i] = pad;
-        }
-        length += pad;
-        int num = length / 16;
-
-        for (int i = 0; i < num; i++)
-        {
-            uint8_t block[16] = {0};
-            memcpy(block, message + i * 16, 16);
-            printf("\nmessage-block %d\n", i);
-            printByteMatrix(block);
-
-            aes_encryption(block);
-            memcpy(ciphertext + i * 16, block, 16);
-            printf("\nciphertext-block %d\n", i);
-            printByteMatrix(block);
-
-            aes_decryption(block);
-            memcpy(plaintext + i * 16, block, 16);
-            printf("\nplaintext-block %d\n", i);
-            printByteMatrix(block);
-        }
-        ciphertext[length] = '\0';
-        plaintext[length] = '\0';
-
-        // cout<<endl<<length<<" "<<strlen(ciphertext)<<" "<<strlen(plaintext)<<endl;
-        printf("\nciphertext:\n%s\n", ciphertext);
-        printf("\nplaintext:\n%s\n", plaintext);
+        printf("\n");
     }
 }

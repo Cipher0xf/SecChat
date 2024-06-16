@@ -1,11 +1,11 @@
-#include <iostream>
 #include <cstring>
-#include <cmath>
 #include <ctime>
-#include <chrono>
+#include <cmath>
+#include <cstdio>
+#include <iostream>
 using namespace std;
 #define ROUND 16
-#define MAX_LENGTH 1048576
+#define MAX_LENGTH 1000
 
 uint8_t IP[64] = {
     58, 50, 42, 34, 26, 18, 10, 2,
@@ -110,6 +110,44 @@ uint64_t genKeys[ROUND] = {};
 char message[MAX_LENGTH] = "";
 char ciphertext[MAX_LENGTH] = "";
 char plaintext[MAX_LENGTH] = "";
+
+void messagePadding(char *msg);
+bool keyCheck(uint64_t key);
+void keyGen(uint64_t key); // generate 16 48-bit keys
+uint64_t initialPermutation(uint64_t block);
+uint64_t inversePermutation(uint64_t block);
+uint64_t expansion(uint64_t block, uint64_t key); // 32bits-->48bits
+uint64_t substitution(uint64_t block); // 48bits-->32bits
+uint64_t permutation(uint64_t block); // 32bits-->32bits
+uint64_t F(uint64_t block, uint64_t key); // round-function 32bits-->48bits-->32bits
+uint64_t feistel(uint64_t leftBlock, uint64_t rightBlock, uint64_t *genKeys, uint8_t round);
+uint64_t des(uint64_t input, uint64_t *genKeys);
+
+int main()
+{
+    keyGen(key);
+    cout << "\nPlease input message:\n";
+    cin >> message;
+    for (int i = 0; i < strlen(message); i++)
+    {
+        message[i] = 'a';
+    }
+    messagePadding(message);
+    for (int i = 0; i < strlen(message); i += 8)
+    {
+        uint64_t block = 0;
+        for (int j = 0; j < 8; j++)
+        {
+            block |= ((uint64_t)message[i + j] << (56 - j * 8));
+        }
+        cout << "(" << i / 8 + 1 << ")" << endl;
+        cout << "message-block-" << i / 8 + 1 << ": " << block << endl;
+        cout << "ciphertext-block-" << i / 8 + 1 << ": " << des(block, genKeys) << endl;
+        cout << "plaintext-block-" << i / 8 + 1 << ": " << des(des(block, genKeys), genKeys) << endl;
+    }
+    system("pause");
+    return 0;
+}
 
 void messagePadding(char *msg)
 {
@@ -221,46 +259,4 @@ uint64_t des(uint64_t input, uint64_t *genKeys)
     uint64_t leftBlock = initialPermutation(input) >> 32;
     uint64_t rightBlock = initialPermutation(input) & 0xFFFFFFFF;
     return inversePermutation(feistel(leftBlock, rightBlock, genKeys, ROUND));
-}
-
-int main()
-{
-    int t = 1;
-    while (t--)
-    {
-        keyGen(key);
-        FILE *fp = fopen("ciphertext.txt", "w");
-        if (fp == NULL)
-        {
-            printf("Message file not found!\n");
-            return 0;
-        }
-
-        // cout << "\nPlease input the message: ";
-        // cin >> message;
-        for (int i = 0; i < MAX_LENGTH; i++)
-        {
-            message[i] = 'a';
-        }
-        messagePadding(message);
-        auto start_time = std::chrono::steady_clock::now();
-        for (int i = 0; i < strlen(message); i += 8)
-        {
-            uint64_t block = 0;
-            for (int j = 0; j < 8; j++)
-            {
-                block |= ((uint64_t)message[i + j] << (56 - j * 8));
-            }
-            // cout << "(" << i / 8 + 1 << ")" << endl;
-            // cout << "MessageBlock" << i / 8 + 1 << ": " << block << endl;
-
-            // cout << i / 8 + 1 << ": " << des(block, genKeys) << endl;
-            fprintf(fp, "%llu\n", des(block, genKeys));
-
-            // cout << "CiphertextBlock" << i / 8 + 1 << ": " << des(block, genKeys) << endl;
-            // cout << "PlaintextBlock" << i / 8 + 1 << ": " << des(des(block, genKeys), genKeys) << endl;
-        }
-        uint64_t time = chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() - start_time).count();
-        cout << "encryption time (sec): " << time << endl;
-    }
 }

@@ -1,0 +1,17 @@
+treer -d ./ -e proj_struct.md  -i "/.git|.vscode|bin/"
+
+g++ -I./include -o ./bin/util_test ./src/crypto/util_test.cpp ./src/crypto/util.cpp
+g++ -I./include -o ./bin/RSA_test ./src/test/RSA_test.cpp ./src/crypto/pk_crypto/RSA.cpp ./src/crypto/util.cpp
+g++ -I./include -o ./bin/DSA_test ./src/test/DSA_test.cpp ./src/crypto/pk_crypto/DSA.cpp ./src/crypto/util.cpp
+g++ -I./include -o ./bin/AES_test ./src/test/AES_test.cpp ./src/crypto/sk_crypto/AES.cpp ./src/crypto/util.cpp
+g++ -I./include -o ./bin/MD5_test ./src/test/MD5_test.cpp ./src/crypto/hash/MD5.cpp ./src/crypto/util.cpp
+g++ -I./include -o ./bin/server ./src/main/server/server.cpp -lwsock32
+g++ -I./include -o ./bin/client ./src/main/client/client.cpp -lwsock32
+
+./bin/util_test
+./bin/RSA
+./bin/DSA
+./bin/AES_test
+./bin/MD5_test
+./bin/server
+./bin/client

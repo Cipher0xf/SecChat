@@ -1,9 +1,10 @@
-#include <iostream>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <cmath>
 #include <algorithm>
+#include <cstdio>
+#include <iostream>
 using namespace std;
 #define RANGE 30
 

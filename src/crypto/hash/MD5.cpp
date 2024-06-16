@@ -1,11 +1,13 @@
-#include <iostream>
 #include <cstdlib>
 #include <cstring>
 #include <bitset>
 #include <ctime>
 #include <cmath>
 #include <algorithm>
+#include <cstdio>
+#include <iostream>
 using namespace std;
+#define MAX_LENGTH 1000
 
 // MD5 buffer
 uint32_t A = 0x67452301;
@@ -22,7 +24,7 @@ uint32_t shift[4][4] = {
     {4, 11, 16, 23},
     {6, 10, 15, 21}};
 
-uint32_t message_padding(uint8_t *msg, uint64_t length); // pad the message with 1000... and 64-bit length, return the number of 512-bit blocks
+uint32_t message_padding(uint8_t *msg, uint64_t length); // pad the message with 1000...(2) and 64-bit length, return the number of 512-bit blocks
 void sin_table_generation();
 void MD5_process(uint32_t *msg);                           // process a 512-bit block, update MD5 buffer
 uint32_t F(uint32_t x, uint32_t y, uint32_t z, int round); // the unlinear function F
@@ -31,27 +33,25 @@ void hash_output();                                        // output the MD5 has
 int main()
 {
     sin_table_generation();
-    int t = 9;
-    while (t--)
-    {
-        char message[1000] = {};
-        printf("\n\nPlease enter the message:\n");
-        scanf("%s", message);
-        uint8_t msg[1000];
-        memcpy(msg, message, sizeof(message));
 
-        uint32_t block_num = message_padding(msg, strlen(message));
-        for (int i = 0; i < block_num; i++)
+    char message[MAX_LENGTH] = {};
+    printf("Please input message:\n");
+    scanf("%s", message);
+    uint8_t msg[MAX_LENGTH];
+    memcpy(msg, message, sizeof(message));
+
+    uint32_t block_num = message_padding(msg, strlen(message));
+    for (int i = 0; i < block_num; i++)
+    {
+        uint32_t block[16] = {}; // restore the i-th 512-bit block
+        for (int j = 0; j < 16; j++)
         {
-            uint32_t block[16] = {}; // restore the i-th 512-bit block
-            for (int j = 0; j < 16; j++)
-            {
-                block[j] = (uint32_t)msg[i * 64 + j * 4] << 24 | (uint32_t)msg[i * 64 + j * 4 + 1] << 16 | (uint32_t)msg[i * 64 + j * 4 + 2] << 8 | (uint32_t)msg[i * 64 + j * 4 + 3];
-            }
-            MD5_process(block);
+            block[j] = (uint32_t)msg[i * 64 + j * 4] << 24 | (uint32_t)msg[i * 64 + j * 4 + 1] << 16 | (uint32_t)msg[i * 64 + j * 4 + 2] << 8 | (uint32_t)msg[i * 64 + j * 4 + 3];
         }
-        hash_output();
+        MD5_process(block);
     }
+    hash_output();
+    system("pause");
     return 0;
 }
 
