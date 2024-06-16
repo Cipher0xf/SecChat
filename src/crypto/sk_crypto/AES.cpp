@@ -10,6 +10,7 @@ using namespace std;
 #include "util.hpp"
 #include "AES.hpp"
 #define ROUND 10
+#define MAX_LENGTH 1000
 
 const uint8_t Sbox[16][16] = {
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -82,8 +83,6 @@ void AES::keyGen(uint8_t *key)
 uint64_t AES::msgPadding(uint8_t *msg, uint64_t len)
 {
     int pad = 16 - (len % 16);
-    if (pad == 16)
-        pad = 0;
     for (int i = len; i < len + pad; i++)
         msg[i] = pad;
     len += pad;
@@ -219,7 +218,7 @@ void AES::re_mixColumn(uint8_t *block)
     }
 }
 
-void AES::encrypt(uint8_t *block)
+void AES::blockEnc(uint8_t *block)
 {
     addRoundKey(block, subKeys[0]);
     for (int r = 1; r <= ROUND; r++)
@@ -234,7 +233,7 @@ void AES::encrypt(uint8_t *block)
     }
 }
 
-void AES::decrypt(uint8_t *block)
+void AES::blockDec(uint8_t *block)
 {
 
     for (int r = ROUND; r >= 1; r--)
@@ -248,6 +247,45 @@ void AES::decrypt(uint8_t *block)
         re_subByte(block);
     }
     addRoundKey(block, subKeys[0]);
+}
+
+char *AES::encrypt(char *msg_str)
+{
+    char* cipher_str = (char*)malloc(MAX_LENGTH * sizeof(char));
+    uint8_t msg[MAX_LENGTH] = "";
+    uint64_t len = strlen(msg_str);
+    memcpy(msg, msg_str, len);
+    uint64_t block_num = msgPadding(msg, len);
+    for (int i = 0; i < block_num; i++)
+    {
+        uint8_t block[16] = {};
+        memcpy(block, msg + i * 16, 16);
+        blockEnc(block);
+        memcpy(cipher_str + i * 16, block, 16);
+        printf("\nciphertext-block-%d\n", i);
+        printByteMatrix(block);
+    }
+    return cipher_str;
+}
+
+char *AES::decrypt(char *cipher_str)
+{
+    char* msg_str = (char*)malloc(MAX_LENGTH * sizeof(char));
+    uint8_t cipher[MAX_LENGTH] = "";
+    uint64_t len = strlen(cipher_str);
+    memcpy(cipher, cipher_str, len);
+    uint64_t block_num = len / 16;
+    for (int i = block_num - 1; i >= 0; i--)
+    {
+        uint8_t block[16] = {};
+        memcpy(block, cipher + i * 16, 16);
+
+        blockDec(block);
+        memcpy(msg_str + i * 16, block, 16);
+        printf("\nplaintext-block-%d\n", i);
+        printByteMatrix(block);
+    }
+    return msg_str;
 }
 
 void AES::printByteMatrix(uint8_t *block)

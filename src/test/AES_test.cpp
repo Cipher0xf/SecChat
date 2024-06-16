@@ -20,37 +20,22 @@ int main()
             printf("\n");
     }
 
-    char message[MAX_LENGTH] = "";
-    char ciphertext[MAX_LENGTH] = "";
-    char plaintext[MAX_LENGTH] = "";
-    cout << "\nPlease input message:\n";
-    scanf("%s", message);
-    uint8_t msg[MAX_LENGTH] = "";
-    uint64_t len = strlen(message);
-    memcpy(msg, message, len);
+    char msg[MAX_LENGTH] = "";
+    char *msg_ptr = NULL;
+    char *cipher_ptr = NULL;
+    printf("\nPlease input message:\n");
+    scanf("%s", msg);
 
     AES aes;
     aes.keyGen(key);
-    uint64_t block_num = aes.msgPadding(msg, len);
+    cipher_ptr = aes.encrypt(msg);
+    msg_ptr = aes.decrypt(cipher_ptr);
 
-    for (int i = 0; i < block_num; i++)
-    {
-        uint8_t block[16] = {};
-        memcpy(block, msg + i * 16, 16);
+    printf("\nciphertext:\n%s\n", cipher_ptr); // to be optimized
+    printf("plaintext:\n%s\n", msg_ptr);
 
-        aes.encrypt(block);
-        memcpy(ciphertext + i * 16, block, 16);
-        printf("\nciphertext-block-%d\n", i);
-        aes.printByteMatrix(block);
-
-        aes.decrypt(block);
-        memcpy(plaintext + i * 16, block, 16);
-        printf("plaintext-block-%d\n", i);
-        aes.printByteMatrix(block);
-    }
-    printf("\nciphertext: %s\n", ciphertext);
-    printf("plaintext: %s\n", plaintext);
-    
+    free(msg_ptr);
+    free(cipher_ptr);
     system("pause");
     return 0;
 }
