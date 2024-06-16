@@ -1,14 +1,15 @@
 ./
-├─proj_struct.md
-├─Readme.md
+├─compile_cmd.txt
+├─proj_tree.md
+├─readme.md
 ├─src
-|  ├─compile_cmd.txt
 |  ├─test
+|  |  ├─AES_test.cpp
 |  |  ├─chat_records.csv
-|  |  ├─client.cpp
 |  |  ├─display.cpp
+|  |  ├─RSA_test.cpp
 |  |  ├─send.cpp
-|  |  └server.cpp
+|  |  └util_test.cpp
 |  ├─main
 |  |  ├─server
 |  |  |   └server.cpp
@@ -16,15 +17,12 @@
 |  |  |   └client.cpp
 |  ├─crypto
 |  |   ├─util.cpp
-|  |   ├─util_test.cpp
 |  |   ├─sk_crypto
 |  |   |     ├─AES.cpp
-|  |   |     ├─AES_test.cpp
 |  |   |     └DES.cpp
 |  |   ├─pk_crypto
 |  |   |     ├─ECC.cpp
-|  |   |     ├─RSA.cpp
-|  |   |     └RSA_test.cpp
+|  |   |     └RSA.cpp
 |  |   ├─hash
 |  |   |  └MD5.cpp
 ├─include

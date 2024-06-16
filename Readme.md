@@ -9,34 +9,40 @@
 
 ### 项目结构
 SecChat/  
---server/ 服务器云端文件    
-----server.cpp 服务端  
-----server_config.txt [DSA公私钥]  
-----database/  
-------user_info.csv [序号,用户id,用户名,口令哈希值]  
-------user_cert.csv  [序号,签名时间,用户id,RSA公钥,随机数,RSA公钥证书]  
-------chat_record/ 用户会话记录  
---------A_B.csv  [序号,发送时间,发送方id/名称,接收方id/名称,消息密文]  
---------A_C.csv  
---------...  
---client/ 用户本地文件  
-----Alice/  
-------client.cpp 客户端  
-------client_config.txt [登录状态,用户id,用户名,RSA公私钥,RSA公钥证书]  
-------chat.cpp 会话窗口  
-------session_key.csv [序号,会话建立时间,会话地址,用户id,用户名,AES密钥]  
-----Bob/   
-----Catherine/  
-----...  
---lib/ 自定义库  
-----crypto/ 密码算法  
-----utility/ 工具函数  
+    README.md 说明文档  
+    proj_tree.md 项目结构图  
+    compile_cmd.txt 编译脚本  
+    bin/ 可执行文件(测试用)  
+    include/ 头文件  
+    src/ 源文件   
+        main/ 主程序入口  
+            server/ 服务器  
+                server.cpp 服务端socket通信  
+                server_config.txt [DSA公私钥]  
+                database/  
+                    user_info.csv [序号,用户id,用户名,口令哈希值]  
+                    user_cert.csv  [序号,签名时间,用户id,RSA公钥,随机数,RSA公钥证书]  
+                    chat_record/ 用户会话记录  
+                        A_B.csv  [序号,发送时间,发送方id/名称,接收方id/名称,消息密文]  
+                        A_C.csv  
+                        ...  
+            client/ 用户  
+                client.cpp 客户端socket通信  
+                client_config.txt [登录状态,用户id,用户名,RSA公私钥,RSA公钥证书]  
+                chat.cpp 会话窗口  
+                session_key.csv [序号,会话建立时间,会话地址,用户id,用户名,AES密钥]  
+        crypto/ 密码库  
+            pk_crypto/ 公钥密码  
+            sk_crypto/ 对称密码  
+            hash/ 哈希函数  
+            util.cpp 工具类  
+        test/ 组件测试  
 
 ### 运行流程
 进程p0 服务器  
---线程t1 和A通信  
---线程t2 和B通信  
---...  
+  线程t1 和A通信  
+  线程t2 和B通信  
+  ...  
 进程p1 用户A（输入）  
 进程p2 用户B（输入）  
 ...  
@@ -46,7 +52,7 @@ SecChat/
 用户A/B输入[id,口令]，客户端A/B生成[RSA公私钥]，发送[id,口令MD5哈希值,RSA公钥]  
 服务端根据数据库验证，成功则用[DSA私钥]对[id,RSA公钥,随机数]签名，返回登录许可[True]和[DSA证书]  
 
-(2)对话请求(A-->B) [contact]  
+(2)对话请求(A  >B) [contact]  
 A主动开启对话，发送[src_id(A),dst_id(B),RSA公钥(A),DSA证书(A)]，服务端线程t1存入缓冲区  
 B查询对话请求，服务端线程t2查找缓冲区，发送[src_id(A),RSA公钥(A),随机数(A),DSA证书(A),DSA公钥]给B验签  
 B对A进行身份验证，成功则返回对话许可[True]和[src_id(B),RSA公钥(B),DSA证书(B)]  
