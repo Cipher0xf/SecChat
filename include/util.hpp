@@ -3,10 +3,13 @@
 #include <cstdint>
 using namespace std;
 
-bool isPrime(uint64_t x);
-uint64_t primeNumGen();                                    // generate a random large prime number
-uint64_t gcd(uint64_t x, uint64_t y);                      // the greatest common divisor of x and y
-uint64_t inverse(uint64_t x, uint64_t mod);                // the inversion of x modulo mod
-uint64_t power(uint64_t base, uint64_t exp, uint64_t mod); // base^exp modulo mod
+bool isPrime(__int128_t x);
+void print_int128(__int128_t x);                                             // print a 128-bit unsigned integer with hex format
+__int128_t primeGen();                                                       // generate a random large prime number
+__int128_t gcd(__int128_t x, __int128_t y);                                  // the greatest common divisor of x and y
+__int128_t ex_gcd(__int128_t a, __int128_t b, __int128_t &x, __int128_t &y); // the extended Euclidean algorithm
+__int128_t inverse(__int128_t x, __int128_t mod);                            // the inversion of x modulo mod
+__int128_t phi(__int128_t n);                                                // the Euler's function of n
+__int128_t power(__int128_t base, __int128_t exp, __int128_t mod);           // base^exp modulo mod
 
 #endif

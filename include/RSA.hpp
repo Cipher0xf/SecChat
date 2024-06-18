@@ -6,11 +6,11 @@ using namespace std;
 class RSA
 {
 public:
-    uint64_t p, q, n, phi_n, e, d;
-    uint64_t pub_key, priv_key;
+    __int128_t p, q, n, phi_n, e, d;
+    __int128_t pub_key, priv_key;
     void keyGen();
-    uint64_t encrypt(uint64_t msg, uint64_t pub_key);
-    uint64_t decrypt(uint64_t cipher, uint64_t priv_key);
+    __int128_t encrypt(__int128_t msg, __int128_t pub_key);
+    __int128_t decrypt(__int128_t cipher, __int128_t priv_key);
 };
 
 #endif

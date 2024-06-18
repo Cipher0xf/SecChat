@@ -1,6 +1,6 @@
 treer -d ./ -e proj_tree.md  -i "/.git|.vscode|bin/"
 
-g++ -I./include -o ./bin/util_test ./src/crypto/util_test.cpp ./src/crypto/util.cpp
+g++ -I./include -o ./bin/util_test ./src/test/util_test.cpp ./src/crypto/util.cpp
 g++ -I./include -o ./bin/RSA_test ./src/test/RSA_test.cpp ./src/crypto/pk_crypto/RSA.cpp ./src/crypto/util.cpp
 g++ -I./include -o ./bin/DSA_test ./src/test/DSA_test.cpp ./src/crypto/pk_crypto/DSA.cpp ./src/crypto/util.cpp
 g++ -I./include -o ./bin/AES_test ./src/test/AES_test.cpp ./src/crypto/sk_crypto/AES.cpp ./src/crypto/util.cpp

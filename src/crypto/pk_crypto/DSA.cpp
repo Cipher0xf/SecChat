@@ -9,9 +9,9 @@
 #include <iostream>
 using namespace std;
 #include "util.hpp"
-#include "RSA.hpp"
+#include "DSA.hpp"
 
-void RSA::keyGen()
+void DSA::keyGen()
 {
     srand(time(NULL));
     do // p,q are distinct primes, and n is large enough
@@ -40,17 +40,22 @@ void RSA::keyGen()
         e %= phi_n;
     } while (gcd(e, phi_n) != 1 || (e * e) % phi_n == 1);
     d = inverse(e, phi_n);
-    
+
     pub_key = e;
     priv_key = d;
 }
 
-__int128_t RSA::encrypt(__int128_t msg, __int128_t pub_key)
+__int128_t DSA::sign(__int128_t msg, __int128_t priv_key)
 {
-    return power(msg, pub_key, n);
+    return power(msg, priv_key, n);
 }
 
-__int128_t RSA::decrypt(__int128_t cipher, __int128_t priv_key)
+bool DSA::verify(__int128_t msg, __int128_t cert, __int128_t pub_key)
 {
-    return power(cipher, priv_key, n);
+    __int128_t temp = power(cert, pub_key, n);
+    // printf("temp: "), print_int128(temp);
+    if (msg == temp)
+        return true;
+    else
+        return false;
 }
