@@ -91,7 +91,7 @@ uint32_t MD5::F(uint32_t x, uint32_t y, uint32_t z, int round)
 
 uint8_t *MD5::hash(char *msg_str)
 {
-    uint8_t msg[MAX_LENGTH];
+    uint8_t msg[MAX_LENGTH] = {0};
     memcpy(msg, msg_str, strlen(msg_str));
     uint64_t len = strlen(msg_str);
     uint64_t block_num = msgPadding(msg, len);
@@ -103,13 +103,38 @@ uint8_t *MD5::hash(char *msg_str)
         process(block);
     }
 
-    uint8_t *hash_str = (uint8_t *)malloc(16 * sizeof(uint8_t));
+    uint8_t *hash = (uint8_t *)malloc(16 * sizeof(uint8_t));
     for (int i = 0; i < 4; i++)
     {
-        hash_str[i] = (A >> (i * 8)) & 0xff;
-        hash_str[i + 4] = (B >> (i * 8)) & 0xff;
-        hash_str[i + 8] = (C >> (i * 8)) & 0xff;
-        hash_str[i + 12] = (D >> (i * 8)) & 0xff;
+        hash[i] = (A >> (i * 8)) & 0xff;
+        hash[i + 4] = (B >> (i * 8)) & 0xff;
+        hash[i + 8] = (C >> (i * 8)) & 0xff;
+        hash[i + 12] = (D >> (i * 8)) & 0xff;
     }
+    return hash;
+}
+
+char *MD5::hash2str(uint8_t *hash)
+{
+    char *hash_str = (char *)malloc(33 * sizeof(char));
+    for (int i = 0; i < 16; i++)
+        sprintf(hash_str + 2 * i, "%02x", hash[i]);
+    hash_str[32] = '\0';
     return hash_str;
+}
+
+uint8_t *MD5::str2hash(char *hash_str)
+{
+    uint8_t *hash = (uint8_t *)malloc(16 * sizeof(uint8_t));
+    for (int i = 0; i < 16; i++)
+        sscanf(hash_str + i * 2, "%02x", &hash[i]);
+    return hash;
+}
+
+void MD5::printHash(uint8_t *hash)
+{
+    printf("MD5-hash: ");
+    for (int i = 0; i < 16; i++)
+        printf("%02x", hash[i]);
+    printf("\n");
 }
