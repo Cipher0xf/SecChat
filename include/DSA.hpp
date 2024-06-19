@@ -11,6 +11,9 @@ public:
     void keyGen();
     __int128_t sign(__int128_t msg, __int128_t priv_key);
     bool verify(__int128_t msg, __int128_t cert, __int128_t pub_key);
+    char *pk2str();
+    __int128_t str2pk(char *pk_str);
+    char* sign2str(__int128_t sign);
 };
 
 #endif

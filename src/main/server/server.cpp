@@ -135,7 +135,7 @@ DWORD WINAPI subThread(LPVOID lpParameter)
 	SOCKET server_socket = param->server_socket;
 	SOCKET client_socket = param->client_socket;
 	sockaddr_in client_addr = param->client_addr;
-	printf("ip:port %s:%d\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
+	printf("  ip:port %s:%d\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
 	int response = 0;
 
 	/* crypto initialization */
@@ -147,22 +147,24 @@ DWORD WINAPI subThread(LPVOID lpParameter)
 	md5.init();
 
 	/* receive login request */
-	char login_request[50];
-	char token[20];
-	char pwd_hash_str[33];
+	char login_request[50] = "";
+	char login_response[30] = "";
+	char token[20] = "";
+	char pwd_hash_str[33] = "";
+	char rsa_pk_str[35] = "";
 	response = recv(client_socket, login_request, MAX_LENGTH, 0);
-	sscanf(login_request, "login_request %s %32s", token, pwd_hash_str);
-	printf("LOG(login_request): token: %s, pwd_hash_str: %32s\n", token, pwd_hash_str);
+	sscanf(login_request, "login_request %s %32s %34s", token, pwd_hash_str, rsa_pk_str);
+	printf("LOG(login):\n  token: %s\n  pwd_hash_str: %s\n  rsa_pk_str: %s\n", token, pwd_hash_str, rsa_pk_str);
 	userInfo user_info;
 	FILE *fp = fopen("../src/main/server/database/user_info.csv", "r");
 	if (fp == NULL)
-		printf("ERROR(login_request): user_info.csv not found\n");
+		printf("ERROR(login): user_info.csv not found\n");
 	char col_names[100];
 	fscanf(fp, "%99[^\n]\n", col_names); // filter out column names
 	bool valid = false;
 	while (fscanf(fp, "%llu,%[^,],%[^,],%[^\n]\n", &(user_info.id), user_info.user_id, user_info.user_name, user_info.password_md5) != EOF)
 	{
-		// printf("DEBUG(login_request): Matching... user_id: %s, password_md5: %s\n", user_info.user_id, user_info.password_md5);
+		// printf("DEBUG(login): Matching... user_id: %s, password_md5: %s\n", user_info.user_id, user_info.password_md5);
 		if ((strcmp(token, user_info.user_name) == 0 || strcmp(token, user_info.user_id) == 0) && strcmp(pwd_hash_str, user_info.password_md5) == 0)
 		{
 			valid = true;
@@ -171,12 +173,18 @@ DWORD WINAPI subThread(LPVOID lpParameter)
 	}
 	if (valid)
 	{
-		printf("LOG(login_request): accept login request from %s:%d-%s-%s\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port, user_info.user_id, user_info.user_name);
-		response = send(client_socket, "accept", strlen("accept"), 0);
+		printf("LOG(login): accept login request from %s:%d-%s-%s\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port, user_info.user_id, user_info.user_name);
+		__int128_t rsa_pk = rsa.str2pk(rsa_pk_str);
+		__int128_t dsa_sign = dsa.sign(rsa_pk, dsa.priv_key);
+		char *dsa_sign_str = dsa.sign2str(dsa_sign);
+		printf("  sign a DSA-certificate %16s for RSA-public-key\n", dsa_sign_str);
+		sprintf(login_response, "accept %16s", dsa_sign_str);
+		response = send(client_socket, login_response, strlen(login_response), 0);
+		free(dsa_sign_str);
 	}
 	else
 	{
-		printf("LOG(login_request): reject login request from %s:%d\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
+		printf("LOG(login): reject login request from %s:%d\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
 		response = send(client_socket, "reject", strlen("reject"), 0);
 	}
 	fclose(fp);
@@ -190,13 +198,13 @@ DWORD WINAPI subThread(LPVOID lpParameter)
 		response = recv(client_socket, buffer, MAX_LENGTH, 0);
 		if (SOCKET_ERROR == response)
 		{
-			printf("LOG: client disconnected\nip:port %s:%d\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
+			printf("LOG: client disconnected\n  ip:port %s:%d\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
 			closesocket(client_socket);
 			return -1;
 		}
 		else
 		{
-			printf("\n%s:%d-%s-%s sent to server:\n%s\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port, user_info.user_id, user_info.user_name, buffer);
+			printf("-------------------------\n%s:%d-%s-%s sent to server:\n%s-------------------------\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port, user_info.user_id, user_info.user_name, buffer);
 			// char reply[] = "okk!";
 			// response = send(client_socket, reply, strlen(reply), 0);
 		}

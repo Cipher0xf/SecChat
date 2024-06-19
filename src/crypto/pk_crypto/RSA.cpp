@@ -40,7 +40,7 @@ void RSA::keyGen()
         e %= phi_n;
     } while (gcd(e, phi_n) != 1 || (e * e) % phi_n == 1);
     d = inverse(e, phi_n);
-    
+
     pub_key = e;
     priv_key = d;
 }
@@ -53,4 +53,21 @@ __int128_t RSA::encrypt(__int128_t msg, __int128_t pub_key)
 __int128_t RSA::decrypt(__int128_t cipher, __int128_t priv_key)
 {
     return power(cipher, priv_key, n);
+}
+
+char *RSA::pk2str()
+{
+    char *pk_str = (char *)malloc(35 * sizeof(char));
+    sprintf(pk_str, "E%016llxN%016llx", (uint64_t)e, (uint64_t)n);
+    pk_str[34] = '\0';
+    return pk_str;
+}
+
+__int128_t RSA::str2pk(char *pk_str)
+{
+    uint64_t param1, param2;
+    sscanf(pk_str, "E%016llxN%016llx", &param1, &param2);
+    e = (__int128_t)param1;
+    n = (__int128_t)param2;
+    return e;
 }

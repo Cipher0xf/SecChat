@@ -59,3 +59,28 @@ bool DSA::verify(__int128_t msg, __int128_t cert, __int128_t pub_key)
     else
         return false;
 }
+
+char *DSA::pk2str()
+{
+    char *pk_str = (char *)malloc(35 * sizeof(char));
+    sprintf(pk_str, "E%016llxN%016llx", (uint64_t)e, (uint64_t)n);
+    pk_str[34] = '\0';
+    return pk_str;
+}
+
+__int128_t DSA::str2pk(char *pk_str)
+{
+    uint64_t param1, param2;
+    sscanf(pk_str, "E%016llxN%016llx", &param1, &param2);
+    e = (__int128_t)param1;
+    n = (__int128_t)param2;
+    return e;
+}
+
+char *DSA::sign2str(__int128_t sign)
+{
+    char *sign_str = (char *)malloc(17 * sizeof(char));
+    sprintf(sign_str, "%016llx", (uint64_t)sign);
+    sign_str[16] = '\0';
+    return sign_str;
+}

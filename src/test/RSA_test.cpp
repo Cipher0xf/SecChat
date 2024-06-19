@@ -24,6 +24,11 @@ int main()
     printf("ciphertext: "), print_int128(cipher);
     printf("plaintext: "), print_int128(msg);
 
+    char *pk_str=rsa.pk2str();
+    printf("public-key: %s\n", pk_str);
+    rsa.str2pk(pk_str);
+    printParams(rsa);
+
     system("pause");
     return 0;
 }

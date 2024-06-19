@@ -69,36 +69,40 @@ int main()
 	RSA rsa;
 	rsa.keyGen();
 	AES aes;
-	
+
 	// aes.keyGen();
 	MD5 md5;
 	md5.init();
 
 	/* send login request */
 	char login_request[50] = "";
+	char login_response[30] = "";
 	char token[20] = "";
 	char password[20] = "";
+	char *rsa_pk_str = rsa.pk2str(); // user's RSA-public-key to encrypt AES-key for session
+	char dsa_sign_str[17] = "";		 // DSA-certificate for user's RSA-public-key
 	printf("Please input user-id or user-name:\n"), scanf("%s", token);
 	printf("Please input password:\n"), scanf("%s", password);
-	printf("token: %s\npassword: %s\n", token, password);
+	printf("LOG(login):\n  token: %s\n  password: %s\n  RSA-public-key: %s\n", token, password, rsa_pk_str);
 	uint8_t *pwd_hash = md5.hash(password);
 	char *pwd_hash_str = md5.hash2str(pwd_hash);
 	// printf("DEBUG(password hash): %s\n", pwd_hash_str);
-	sprintf(login_request, "login_request %s %32s", token, pwd_hash_str);
-	// printf("DEBUG(login_request): %s\n", login_request);
+	sprintf(login_request, "login_request %s %32s %34s", token, pwd_hash_str, rsa_pk_str);
+	// printf("DEBUG(login): %s\n", login_request);
 	response = send(client_socket, login_request, strlen(login_request), 0);
 	free(pwd_hash);
 	free(pwd_hash_str);
-	char login_response[20];
+	free(rsa_pk_str);
 	response = recv(client_socket, login_response, sizeof(login_response), 0);
-	// printf("DEBUG(login_response): %s\n", login_response);
-	if (strcmp(login_response, "accept") == 0)
+	// printf("DEBUG(login): %s\n", login_response);
+	if (strstr(login_response, "accept") != NULL)
 	{
-		printf("LOG(login_request): login succeeded\n");
+		sscanf(login_response, "accept %16s", dsa_sign_str);
+		printf("LOG(login): login succeeded\n  received the DSA-certificate: %s\n", dsa_sign_str);
 	}
 	else
 	{
-		printf("ERROR(login_request): login failed\n");
+		printf("ERROR(login): login failed\n");
 		system("pause");
 		return -1;
 	}
