@@ -7,7 +7,7 @@ g++ -I./include -o ./bin/AES_test ./src/test/AES_test.cpp ./src/crypto/sk_crypto
 g++ -I./include -o ./bin/MD5_test ./src/test/MD5_test.cpp ./src/crypto/hash/MD5.cpp ./src/crypto/util.cpp
 g++ -I./include -o ./bin/server ./src/main/server/server.cpp -lwsock32 ./src/crypto/util.cpp ./src/crypto/pk_crypto/RSA.cpp ./src/crypto/pk_crypto/DSA.cpp ./src/crypto/sk_crypto/AES.cpp ./src/crypto/hash/MD5.cpp
 g++ -I./include -o ./bin/client ./src/main/client/client.cpp -lwsock32 ./src/crypto/util.cpp ./src/crypto/pk_crypto/RSA.cpp ./src/crypto/pk_crypto/DSA.cpp ./src/crypto/sk_crypto/AES.cpp ./src/crypto/hash/MD5.cpp
-g++ -I./include -o ./bin/chat ./src/main/client/chat.cpp
+g++ -I./include -o ./bin/chat ./src/main/client/chat.cpp ./src/crypto/sk_crypto/AES.cpp ./src/crypto/util.cpp
 
 ./bin/util_test
 ./bin/RSA_test

@@ -1,8 +1,10 @@
 #include <cstdlib>
-#include <string>
+#include <cstring>
 #include <vector>
 #include <map>
+#include <chrono>
 #include <WINSOCK2.H>
+#include <Windows.h>
 #include <cstdio>
 #include <iostream>
 using namespace std;
@@ -41,6 +43,16 @@ typedef struct
 	char salt_value;
 	char dsa_certificate[17];
 } userCert;
+
+typedef struct
+{
+	uint64_t seq;
+	uint64_t timestamp;
+	char src_name[20];
+	char dst_name[20];
+	char content[MAX_LENGTH];
+} chatRecord;
+
 DSA dsa;
 map<char *, char *> chatRequestMap; // dst_id-->chat_request
 map<char *, bool> authResultMap;	// id-->auth_result
@@ -161,7 +173,7 @@ DWORD WINAPI subThread(LPVOID lpParameter)
 	char token[20] = "";
 	char pwd_hash_str[33] = "";
 	response = recv(client_socket, login_request, sizeof(login_request), 0);
-	printf("DEBUG(login): recv (%s)\n", login_request);
+	// printf("DEBUG(login): recv (%s)\n", login_request);
 	sscanf(login_request, "login_request %s %32s %34s", token, pwd_hash_str, rsa_pk_str);
 	printf("LOG(login):\n  token: %s\n  pwd_hash_str: %s\n  rsa_pk_str: %s\n", token, pwd_hash_str, rsa_pk_str);
 	userInfo src;
@@ -278,13 +290,29 @@ DWORD WINAPI subThread(LPVOID lpParameter)
 	else
 	{
 		printf("LOG(auth): identity authentication failed\n");
-		// closesocket(client_socket);
-		// return -1;
 	}
 
 	/* send chat-address to both sides */
+	char chat_address[100] = "";
+	if (strcmp(src.user_name, dst_name) > 0)
+	{
+		sprintf(chat_address, "../src/main/server/database/chat_record/%s_%s.csv", src_name, dst_name);
+	}
+	else
+	{
+		sprintf(chat_address, "../src/main/server/database/chat_record/%s_%s.csv", dst_name, src_name);
+	}
+	printf("LOG(file): create chat_address %s\n", chat_address);
+	FILE *fp2 = fopen(chat_address, "w");
+	if (fp == NULL)
+	{
+		printf("ERROR(file) file not found\n");
+	}
+	response = send(client_socket, chat_address, strlen(chat_address), 0);
+	printf("LOG(file): send chat_address to %s\n", src.user_name);
+	fclose(fp2);
 
-	/* transfer chat-content */
+	/* transfer chat-content(ciphertext) */
 	while (true)
 	{
 		char buffer[MAX_LENGTH];
@@ -298,7 +326,21 @@ DWORD WINAPI subThread(LPVOID lpParameter)
 		}
 		else
 		{
-			printf("<<--------------------------------------------------\n%s-%s sent to server:\n%s-------------------------------------------------->>\n", src.user_id, src.user_name, buffer);
+			printf("<<--------------------------------------------------\n%s send to %s:\n%s\n-------------------------------------------------->>\n", src.user_name, dst_name, buffer);
+			uint64_t last_seq = 0;
+			FILE *fp3 = fopen(chat_address, "r");
+			chatRecord temp;
+			char col_names[100];
+			fscanf(fp3, "%99[^\n]", col_names); // filter out column names
+			while (fscanf(fp3, "%llu,%llu,%[^,],%[^,],%[^\n]\n", &(temp.seq), &(temp.timestamp), temp.src_name, temp.dst_name, temp.content) != EOF)
+				last_seq = temp.seq;
+			fclose(fp3);
+			fp3 = fopen(chat_address, "a");
+			auto now = chrono::system_clock::now();
+			auto duration = now.time_since_epoch();
+			uint64_t timestamp = chrono::duration_cast<chrono::milliseconds>(duration).count() / 1000;
+			fprintf(fp3, "%llu,%llu,%s,%s,%s\n", last_seq + 1, timestamp, src_name, dst_name, buffer);
+			fclose(fp3);
 		}
 	}
 

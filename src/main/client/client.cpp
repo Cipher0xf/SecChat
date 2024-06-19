@@ -72,7 +72,6 @@ int main()
 	rsa.keyGen();
 	char *rsa_pk_str = rsa.pk2str(); // user's RSA-public-key to encrypt AES-key for session
 	AES aes;
-	// aes.keyGen();
 	MD5 md5;
 	md5.init();
 
@@ -134,10 +133,18 @@ int main()
 	if (auth_result)
 	{
 		printf("LOG(auth): success\n");
-		if (strcmp(src_name, dst_name) > 0)
-		{
-			
-		}
+		// if (strcmp(src_name, dst_name) > 0)
+		// {
+		char aes_key_str[17] = "0123456789abcdef";
+		aes.str2key(aes_key_str);
+		aes.keyGen();
+		FILE *fp = fopen("../src/main/client/session_key.txt", "w");
+		if (fp == NULL)
+			printf("ERROR(file) session_key.txt not found\n");
+		fprintf(fp, "%s\n", aes_key_str);
+		fclose(fp);
+		// 	__int128_t session_key_cipher = rsa.encrypt(rsa.str2int(aes_key), rsa.pub_key);
+		// }
 		response = send(client_socket, "accept", sizeof("accept"), 0);
 	}
 	else
@@ -146,7 +153,16 @@ int main()
 		response = send(client_socket, "reject", sizeof("reject"), 0);
 	}
 	free(rsa_pk_str);
+
 	/* receive chat-address */
+	char chat_address[100] = "";
+	response = recv(client_socket, chat_address, sizeof(chat_address), 0);
+	printf("LOG(file): recv chat_address %s\n", chat_address);
+	FILE *fp2 = fopen("../src/main/client/chat_address.txt", "w");
+	if (fp2 == NULL)
+		printf("ERROR(file) chat_address.txt not found\n");
+	fprintf(fp2, "%s\n", chat_address);
+	fclose(fp2);
 
 	/* start chatting */
 	while (true)
@@ -156,6 +172,8 @@ int main()
 		ZeroMemory(buffer, MAX_LENGTH);
 		if (msgBuf(buffer) != 0)
 			continue;
+		// char *cipher = aes.encrypt(buffer);
+		// printf("DEBUG(chat): send ciphertext\n%s\n", cipher); // to be optimized
 		response = send(client_socket, buffer, strlen(buffer), 0);
 	}
 
@@ -173,11 +191,13 @@ int msgBuf(char *buffer)
 	char c;
 	while (c = getchar())
 	{
-		if (c == '\n' && i > 0)
-		{
-			if (buffer[i - 1] == '\n')
-				break;
-		}
+		// if (c == '\n' && i > 0)
+		// {
+		// 	if (buffer[i - 1] == '\n')
+		// 		break;
+		// }
+		if(c == '\n' || c == '\r' || c == '\0')
+			break;
 		buffer[i++] = c;
 	}
 	if (i > MAX_LENGTH)

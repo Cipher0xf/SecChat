@@ -1,6 +1,6 @@
-seq,time,src_id,dst_id,msg
-0,0,101,102,Hi
-1,0,102,101,Hello
-2,1718190230073,101,102,1
-3,1718190231194,101,102,1we2
-4,1718213124933,101,102,test
+seq,timestamp,src_name,dst_name,content
+0,0,Alice,Bob,Hi
+1,0,Bob,Alice,Hello
+2,1718190230073,Bob,Alice,1
+3,1718190231194,Bob,Alice,1we2
+4,1718213124933,Alice,Bob,test

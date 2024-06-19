@@ -13,6 +13,8 @@ public:
     __int128_t decrypt(__int128_t cipher, __int128_t priv_key);
     char *pk2str();
     __int128_t str2pk(char *pk_str);
+    char *int2str(__int128_t int128);
+    __int128_t str2int(char *str);
 };
 
 #endif

@@ -281,8 +281,8 @@ char *AES::encrypt(char *msg_str)
         memcpy(block, msg + i * 16, 16);
         blockEnc(block);
         memcpy(cipher_str + i * 16, block, 16);
-        printf("\nciphertext-block-%d\n", i);
-        printByteMatrix(block);
+        // printf("\nciphertext-block-%d\n", i);
+        // printByteMatrix(block);
     }
     return cipher_str;
 }
@@ -301,8 +301,8 @@ char *AES::decrypt(char *cipher_str)
         memcpy(block, cipher + i * 16, 16);
         blockDec(block);
         memcpy(msg + i * 16, block, 16);
-        printf("\nplaintext-block-%d\n", i);
-        printByteMatrix(block);
+        // printf("\nplaintext-block-%d\n", i);
+        // printByteMatrix(block);
     }
 
     // printf("msgRestore-test:\n");

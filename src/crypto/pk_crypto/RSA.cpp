@@ -71,3 +71,18 @@ __int128_t RSA::str2pk(char *pk_str)
     n = (__int128_t)param2;
     return e;
 }
+
+char *RSA::int2str(__int128_t int128)
+{
+    char *sign_str = (char *)malloc(17 * sizeof(char));
+    sprintf(sign_str, "%016llx", (uint64_t)int128);
+    sign_str[16] = '\0';
+    return sign_str;
+}
+
+__int128_t RSA::str2int(char *str)
+{
+    uint64_t sign;
+    sscanf(str, "%016llx", &sign);
+    return (__int128_t)sign;
+}
