@@ -68,7 +68,7 @@ int main()
 	DSA dsa;
 	char dsa_pk_str[35] = "";
 	char dsa_sign_str[17] = ""; // DSA-certificate for user's RSA-public-key
-	RSA rsa;
+	RSA rsa, rsa2;
 	rsa.keyGen();
 	char *rsa_pk_str = rsa.pk2str(); // user's RSA-public-key to encrypt AES-key for session
 	AES aes;
@@ -120,7 +120,7 @@ int main()
 	response = send(client_socket, chat_request, sizeof(chat_request), 0);
 	printf("DEBUG(chat): send (%s) to %s\n", chat_request, dst_name);
 
-	/* identity authentication */
+	/* identity authentication & session key exchange */
 	char chat_response[100] = "";
 	__int128_t dsa_pk = dsa.str2pk(dsa_pk_str);
 	char dst_rsa_pk_str[35] = "";
@@ -128,12 +128,16 @@ int main()
 	response = recv(client_socket, chat_response, sizeof(chat_response), 0);
 	sscanf(chat_response, "chat_request %s %s %34s %16s", dst_name, src_name, dst_rsa_pk_str, dst_dsa_sign_str);
 	printf("DEBUG(auth): recv (%s) from %s\n", chat_response, dst_name);
-	__int128_t dst_rsa_pk = rsa.str2pk(dst_rsa_pk_str);
+	__int128_t dst_rsa_pk = rsa2.str2pk(dst_rsa_pk_str);
 	__int128_t dst_dsa_sign = dsa.str2sign(dst_dsa_sign_str);
 	bool auth_result = dsa.verify(dst_rsa_pk, dst_dsa_sign, dsa_pk);
 	if (auth_result)
 	{
 		printf("LOG(auth): success\n");
+		if (strcmp(src_name, dst_name) > 0)
+		{
+			
+		}
 		response = send(client_socket, "accept", sizeof("accept"), 0);
 	}
 	else
@@ -141,10 +145,8 @@ int main()
 		printf("LOG(auth): fail\n");
 		response = send(client_socket, "reject", sizeof("reject"), 0);
 	}
-
-	/* receive chat-address */
-
 	free(rsa_pk_str);
+	/* receive chat-address */
 
 	/* start chatting */
 	while (true)

@@ -10,27 +10,18 @@ using namespace std;
 int main()
 {
     srand(time(NULL));
-    uint8_t key[16] = {};
-    printf("initial-key:\n");
+    char key_str[17] = "1234567890abcdef";
+    AES aes;
+    aes.str2key(key_str);
     for (int i = 0; i < 16; i++)
-    {
-        key[i] = rand() % 256;
-        printf("%x ", key[i]);
-        if (i % 4 == 3)
-            printf("\n");
-    }
+        printf("%02x ", aes.key[i]);
+    aes.keyGen();
 
     char msg[MAX_LENGTH] = "";
-    char *msg_ptr = NULL;
-    char *cipher_ptr = NULL;
     printf("\nPlease input message:\n");
     scanf("%s", msg);
-
-    AES aes;
-    aes.keyGen(key);
-    cipher_ptr = aes.encrypt(msg);
-    msg_ptr = aes.decrypt(cipher_ptr);
-
+    char *cipher_ptr = aes.encrypt(msg);
+    char *msg_ptr = aes.decrypt(cipher_ptr);
     printf("\nciphertext:\n%s\n", cipher_ptr); // to be optimized
     printf("plaintext:\n%s\n", msg_ptr);
 

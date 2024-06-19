@@ -58,7 +58,7 @@ const uint8_t re_mixMatrix[4][4] = {
     0x0B, 0x0D, 0x09, 0x0E};
 const uint8_t Rcon[10] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
 
-void AES::keyGen(uint8_t *key)
+void AES::keyGen()
 {
     memcpy(subKeys[0], key, 16);
     for (int r = 1; r <= ROUND; r++)
@@ -87,6 +87,25 @@ uint64_t AES::msgPadding(uint8_t *msg, uint64_t len)
         msg[i] = pad;
     len += pad;
     return len / 16;
+}
+
+void AES::msgRestore(uint8_t *msg)
+{
+    int pad = 0;
+    int len = 0;
+    for (int i = MAX_LENGTH - 1; i > 0; i--)
+    {
+        if (msg[i] != 0)
+        {
+            pad = msg[i];
+            len = i + 1;
+            break;
+        }
+    }
+    for (int j = len; j < len + pad; j++)
+    {
+        msg[j] = 0;
+    }
 }
 
 void AES::addRoundKey(uint8_t *block, uint8_t *key)
@@ -251,7 +270,7 @@ void AES::blockDec(uint8_t *block)
 
 char *AES::encrypt(char *msg_str)
 {
-    char* cipher_str = (char*)malloc(MAX_LENGTH * sizeof(char));
+    char *cipher_str = (char *)malloc(MAX_LENGTH * sizeof(char));
     uint8_t msg[MAX_LENGTH] = "";
     uint64_t len = strlen(msg_str);
     memcpy(msg, msg_str, len);
@@ -270,7 +289,8 @@ char *AES::encrypt(char *msg_str)
 
 char *AES::decrypt(char *cipher_str)
 {
-    char* msg_str = (char*)malloc(MAX_LENGTH * sizeof(char));
+    char *msg_str = (char *)malloc(MAX_LENGTH * sizeof(char));
+    uint8_t msg[MAX_LENGTH] = "";
     uint8_t cipher[MAX_LENGTH] = "";
     uint64_t len = strlen(cipher_str);
     memcpy(cipher, cipher_str, len);
@@ -279,13 +299,31 @@ char *AES::decrypt(char *cipher_str)
     {
         uint8_t block[16] = {};
         memcpy(block, cipher + i * 16, 16);
-
         blockDec(block);
-        memcpy(msg_str + i * 16, block, 16);
+        memcpy(msg + i * 16, block, 16);
         printf("\nplaintext-block-%d\n", i);
         printByteMatrix(block);
     }
+
+    // printf("msgRestore-test:\n");
+    // for (int i = 0; i < MAX_LENGTH; i++)
+    // {
+    //     printf("%02x ", msg[i]);
+    //     if (i % 16 == 15)
+    //         printf("\n");
+    // }
+
+    msgRestore(msg);
+    memcpy(msg_str, msg, MAX_LENGTH);
     return msg_str;
+}
+
+void AES::str2key(char *key_str)
+{
+    for (int i = 0; i < 16; i++)
+    {
+        sscanf(key_str + i, "%1x", &key[i]);
+    }
 }
 
 void AES::printByteMatrix(uint8_t *block)
