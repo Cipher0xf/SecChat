@@ -66,67 +66,95 @@ int main()
 
 	/* crypto initialization */
 	DSA dsa;
+	char dsa_pk_str[35] = "";
+	char dsa_sign_str[17] = ""; // DSA-certificate for user's RSA-public-key
 	RSA rsa;
 	rsa.keyGen();
+	char *rsa_pk_str = rsa.pk2str(); // user's RSA-public-key to encrypt AES-key for session
 	AES aes;
-
 	// aes.keyGen();
 	MD5 md5;
 	md5.init();
 
-	/* send login request */
-	char login_request[50] = "";
-	char login_response[30] = "";
-	char token[20] = "";
+	/* send login request
+	(src_name + password-MD5 + RSA-public-key) */
+	char login_request[100] = "";
+	char login_response[100] = "";
+	char src_name[20] = "";
 	char password[20] = "";
-	char *rsa_pk_str = rsa.pk2str(); // user's RSA-public-key to encrypt AES-key for session
-	char dsa_sign_str[17] = "";		 // DSA-certificate for user's RSA-public-key
-	printf("Please input user-id or user-name:\n"), scanf("%s", token);
+	printf("Please input user-name:\n"), scanf("%s", src_name);
 	printf("Please input password:\n"), scanf("%s", password);
-	printf("LOG(login):\n  token: %s\n  password: %s\n  RSA-public-key: %s\n", token, password, rsa_pk_str);
+	printf("LOG(login):\n  token: %s\n  password: %s\n  RSA-public-key: %s\n", src_name, password, rsa_pk_str);
 	uint8_t *pwd_hash = md5.hash(password);
 	char *pwd_hash_str = md5.hash2str(pwd_hash);
-	// printf("DEBUG(password hash): %s\n", pwd_hash_str);
-	sprintf(login_request, "login_request %s %32s %34s", token, pwd_hash_str, rsa_pk_str);
-	// printf("DEBUG(login): %s\n", login_request);
+	printf("DEBUG(password-MD5): %s\n", pwd_hash_str);
+	sprintf(login_request, "login_request %s %32s %34s", src_name, pwd_hash_str, rsa_pk_str);
+	printf("DEBUG(login): send (%s) to server\n", login_request);
 	response = send(client_socket, login_request, strlen(login_request), 0);
 	free(pwd_hash);
 	free(pwd_hash_str);
-	free(rsa_pk_str);
+
+	/* recv login_response
+	(DSA-certificate + DSA-public-key) */
 	response = recv(client_socket, login_response, sizeof(login_response), 0);
-	// printf("DEBUG(login): %s\n", login_response);
+	printf("DEBUG(login): recv (%s) from server\n", login_response);
 	if (strstr(login_response, "accept") != NULL)
 	{
-		sscanf(login_response, "accept %16s", dsa_sign_str);
-		printf("LOG(login): login succeeded\n  received the DSA-certificate: %s\n", dsa_sign_str);
+		sscanf(login_response, "accept %16s %34s", dsa_sign_str, dsa_pk_str);
+		printf("LOG(login): success\n  recv DSA-certificate: %s\n  recv DSA-public-key: %s\n", dsa_sign_str, dsa_pk_str);
 	}
 	else
 	{
-		printf("ERROR(login): login failed\n");
+		printf("ERROR(login): fail\n");
 		system("pause");
 		return -1;
 	}
 
-	/* communicate with server */
+	/* send chat request
+	(src-name + dst-name + RSA-public-key + DSA-certificate) */
+	char chat_request[100] = "";
+	char dst_name[20] = "";
+	printf("Who do you want to chat with?\n");
+	scanf("%s", dst_name);
+	sprintf(chat_request, "chat_request %s %s %34s %16s", src_name, dst_name, rsa_pk_str, dsa_sign_str);
+	response = send(client_socket, chat_request, sizeof(chat_request), 0);
+	printf("DEBUG(chat): send (%s) to %s\n", chat_request, dst_name);
+
+	/* identity authentication */
+	char chat_response[100] = "";
+	__int128_t dsa_pk = dsa.str2pk(dsa_pk_str);
+	char dst_rsa_pk_str[35] = "";
+	char dst_dsa_sign_str[17] = "";
+	response = recv(client_socket, chat_response, sizeof(chat_response), 0);
+	sscanf(chat_response, "chat_request %s %s %34s %16s", dst_name, src_name, dst_rsa_pk_str, dst_dsa_sign_str);
+	printf("DEBUG(auth): recv (%s) from %s\n", chat_response, dst_name);
+	__int128_t dst_rsa_pk = rsa.str2pk(dst_rsa_pk_str);
+	__int128_t dst_dsa_sign = dsa.str2sign(dst_dsa_sign_str);
+	bool auth_result = dsa.verify(dst_rsa_pk, dst_dsa_sign, dsa_pk);
+	if (auth_result)
+	{
+		printf("LOG(auth): success\n");
+		response = send(client_socket, "accept", sizeof("accept"), 0);
+	}
+	else
+	{
+		printf("LOG(auth): fail\n");
+		response = send(client_socket, "reject", sizeof("reject"), 0);
+	}
+
+	/* receive chat-address */
+
+	free(rsa_pk_str);
+
+	/* start chatting */
 	while (true)
 	{
-		/* send to server */
 		printf("Please input message:\n");
 		char buffer[MAX_LENGTH];
 		ZeroMemory(buffer, MAX_LENGTH);
 		if (msgBuf(buffer) != 0)
 			continue;
 		response = send(client_socket, buffer, strlen(buffer), 0);
-		if (SOCKET_ERROR == response)
-		{
-			printf("ERROR: send failed\n");
-			continue;
-		}
-
-		/* listen for server response */
-		// ZeroMemory(buffer, MAX_LENGTH);
-		// response = recv(client_socket, buffer, sizeof(buffer), 0);
-		// printf("server response: %s\n", buffer);
 	}
 
 	closesocket(client_socket);

@@ -84,3 +84,10 @@ char *DSA::sign2str(__int128_t sign)
     sign_str[16] = '\0';
     return sign_str;
 }
+
+__int128_t DSA::str2sign(char *sign_str)
+{
+    uint64_t sign;
+    sscanf(sign_str, "%016llx", &sign);
+    return (__int128_t)sign;
+}

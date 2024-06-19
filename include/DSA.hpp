@@ -14,6 +14,7 @@ public:
     char *pk2str();
     __int128_t str2pk(char *pk_str);
     char* sign2str(__int128_t sign);
+    __int128_t str2sign(char *sign_str);
 };
 
 #endif

@@ -1,4 +1,7 @@
 #include <cstdlib>
+#include <string>
+#include <vector>
+#include <map>
 #include <WINSOCK2.H>
 #include <cstdio>
 #include <iostream>
@@ -31,16 +34,22 @@ typedef struct
 
 typedef struct
 {
-	char id[20];
+	uint64_t id;
 	char sign_time[20];
 	char user_id[20];
-	char rsa_public_key[64];
+	char rsa_public_key[35];
 	char salt_value;
-	char certificate[64];
+	char dsa_certificate[17];
 } userCert;
+DSA dsa;
+map<char *, char *> chatRequestMap; // dst_id-->chat_request
+map<char *, bool> authResultMap;	// id-->auth_result
 
 int main()
 {
+	/* crypto initialization */
+	dsa.keyGen();
+	/* server configuration */
 	int port = 7701; // server port
 	CreateThread(NULL, 0, mainThread, &port, 0, NULL);
 	Sleep(INFINITE);
@@ -111,7 +120,7 @@ DWORD WINAPI mainThread(LPVOID lpargs)
 		}
 		else
 		{
-			printf("LOG: client connected\n");
+			printf("LOG(connect): client connected\n");
 			Parameter param;
 			param.server_socket = server_socket;
 			param.client_socket = client_socket;
@@ -139,46 +148,48 @@ DWORD WINAPI subThread(LPVOID lpParameter)
 	int response = 0;
 
 	/* crypto initialization */
-	DSA dsa;
-	dsa.keyGen();
+	char *dsa_pk_str = dsa.pk2str();
 	RSA rsa;
-	AES aes;
+	char rsa_pk_str[35] = "";
+	// AES aes;
 	MD5 md5;
 	md5.init();
 
-	/* receive login request */
-	char login_request[50] = "";
-	char login_response[30] = "";
+	/* receive login_request & sign DSA-certificate */
+	char login_request[100] = "";
+	char login_response[100] = "";
 	char token[20] = "";
 	char pwd_hash_str[33] = "";
-	char rsa_pk_str[35] = "";
-	response = recv(client_socket, login_request, MAX_LENGTH, 0);
+	response = recv(client_socket, login_request, sizeof(login_request), 0);
+	printf("DEBUG(login): recv (%s)\n", login_request);
 	sscanf(login_request, "login_request %s %32s %34s", token, pwd_hash_str, rsa_pk_str);
 	printf("LOG(login):\n  token: %s\n  pwd_hash_str: %s\n  rsa_pk_str: %s\n", token, pwd_hash_str, rsa_pk_str);
-	userInfo user_info;
+	userInfo src;
 	FILE *fp = fopen("../src/main/server/database/user_info.csv", "r");
 	if (fp == NULL)
 		printf("ERROR(login): user_info.csv not found\n");
 	char col_names[100];
 	fscanf(fp, "%99[^\n]\n", col_names); // filter out column names
 	bool valid = false;
-	while (fscanf(fp, "%llu,%[^,],%[^,],%[^\n]\n", &(user_info.id), user_info.user_id, user_info.user_name, user_info.password_md5) != EOF)
+	while (fscanf(fp, "%llu,%[^,],%[^,],%[^\n]\n", &(src.id), src.user_id, src.user_name, src.password_md5) != EOF)
 	{
-		// printf("DEBUG(login): Matching... user_id: %s, password_md5: %s\n", user_info.user_id, user_info.password_md5);
-		if ((strcmp(token, user_info.user_name) == 0 || strcmp(token, user_info.user_id) == 0) && strcmp(pwd_hash_str, user_info.password_md5) == 0)
+		// printf("DEBUG(login): Matching... user_id: %s, password_md5: %s\n", src.user_id, src.password_md5);
+		if ((strcmp(token, src.user_name) == 0 || strcmp(token, src.user_id) == 0) && strcmp(pwd_hash_str, src.password_md5) == 0)
 		{
 			valid = true;
 			break;
 		}
 	}
+	fclose(fp);
 	if (valid)
 	{
-		printf("LOG(login): accept login request from %s:%d-%s-%s\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port, user_info.user_id, user_info.user_name);
+
+		printf("LOG(login): accept login request from %s:%d-%s-%s\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port, src.user_id, src.user_name);
 		__int128_t rsa_pk = rsa.str2pk(rsa_pk_str);
 		__int128_t dsa_sign = dsa.sign(rsa_pk, dsa.priv_key);
 		char *dsa_sign_str = dsa.sign2str(dsa_sign);
-		printf("  sign a DSA-certificate %16s for RSA-public-key\n", dsa_sign_str);
-		sprintf(login_response, "accept %16s", dsa_sign_str);
+		printf("  sign a RSA-public-key DSA-certificate: %16s\n", dsa_sign_str);
+		sprintf(login_response, "accept %16s %34s", dsa_sign_str, dsa_pk_str);
 		response = send(client_socket, login_response, strlen(login_response), 0);
 		free(dsa_sign_str);
 	}
@@ -187,26 +198,107 @@ DWORD WINAPI subThread(LPVOID lpParameter)
 		printf("LOG(login): reject login request from %s:%d\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
 		response = send(client_socket, "reject", strlen("reject"), 0);
 	}
-	fclose(fp);
+	free(dsa_pk_str);
 
-	/* communicate with client */
+	/* receive chat_request from src
+	(dst-name + RSA-public-key + DSA-certificate) */
+	char chat_request[100] = "";
+	char src_name[20] = "";
+	char dst_name[20] = "";
+	response = recv(client_socket, chat_request, sizeof(chat_request), 0);
+	sscanf(chat_request, "chat_request %s %s", src_name, dst_name);
+	printf("LOG(chat): recv (%s) from %s\n", chat_request, src_name);
+	chatRequestMap.insert(pair<char *, char *>(dst_name, chat_request));
+
+	/* waiting for chat_request from dst */
+	bool both_request = false;
+	do
+	{
+		// printf("DEBUG(chat): Checking chat_request...\n");
+		for (auto it = chatRequestMap.begin(); it != chatRequestMap.end(); it++)
+		{
+			// printf("  dst_name: %s\n", src.user_name);
+			if (strcmp(it->first, src.user_name) == 0)
+			{
+				/* send authentication-info */
+				// printf("DEBUG(chat): find chat_request from %s\n", src.user_name);
+				response = send(client_socket, it->second, strlen(it->second), 0);
+				printf("LOG(chat): send (%s) to %s\n", it->second, src.user_name);
+				chatRequestMap.erase(it);
+				both_request = true;
+				break;
+			}
+		}
+		Sleep(3000);
+	} while (!both_request);
+
+	/* wating for verification from dst */
+	char auth_result[10] = "";
+	bool src_auth = false;
+	bool dst_auth = false;
+	response = recv(client_socket, auth_result, sizeof(auth_result), 0);
+	if (strcmp(auth_result, "accept") == 0)
+	{
+		src_auth = true;
+		authResultMap.insert(pair<char *, bool>(src.user_name, true));
+	}
+	else
+	{
+		src_auth = false;
+		authResultMap.insert(pair<char *, bool>(src.user_name, false));
+	}
+	bool both_auth = false;
+	do
+	{
+		for (auto it = authResultMap.begin(); it != authResultMap.end(); it++)
+		{
+			if (strcmp(it->first, dst_name) == 0)
+			{
+				if (it->second)
+				{
+					printf("LOG(auth): %s accepts %s\n", src.user_name, dst_name);
+					dst_auth = true;
+					both_auth = true;
+					break;
+				}
+				else
+				{
+					printf("LOG(auth): %s rejects %s\n", src.user_name, dst_name);
+					dst_auth = false;
+					both_auth = true;
+					break;
+				}
+			}
+		}
+	} while (!both_auth);
+	if (src_auth && dst_auth)
+	{
+		printf("LOG(auth): both sides authenticated\n");
+	}
+	else
+	{
+		printf("LOG(auth): identity authentication failed\n");
+		// closesocket(client_socket);
+		// return -1;
+	}
+
+	/* send chat-address to both sides */
+
+	/* transfer chat-content */
 	while (true)
 	{
-		/* receive from client */
 		char buffer[MAX_LENGTH];
 		ZeroMemory(buffer, MAX_LENGTH);
 		response = recv(client_socket, buffer, MAX_LENGTH, 0);
 		if (SOCKET_ERROR == response)
 		{
-			printf("LOG: client disconnected\n  ip:port %s:%d\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
+			printf("LOG(connect): client disconnected\n  ip:port %s:%d\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
 			closesocket(client_socket);
 			return -1;
 		}
 		else
 		{
-			printf("-------------------------\n%s:%d-%s-%s sent to server:\n%s-------------------------\n", inet_ntoa(client_addr.sin_addr), client_addr.sin_port, user_info.user_id, user_info.user_name, buffer);
-			// char reply[] = "okk!";
-			// response = send(client_socket, reply, strlen(reply), 0);
+			printf("<<--------------------------------------------------\n%s-%s sent to server:\n%s-------------------------------------------------->>\n", src.user_id, src.user_name, buffer);
 		}
 	}
 
