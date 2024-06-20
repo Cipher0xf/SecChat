@@ -170,9 +170,10 @@ int main()
 		printf("Please input message:\n");
 		char buffer[MAX_LENGTH];
 		ZeroMemory(buffer, MAX_LENGTH);
-		if (msgBuf(buffer) != 0)
-			continue;
-		// char *cipher = aes.encrypt(buffer);
+		// if (msgBuf(buffer) != 0)
+		// 	continue;
+		scanf("%s", buffer);
+		char *cipher = aes.encrypt(buffer);
 		// printf("DEBUG(chat): send ciphertext\n%s\n", cipher); // to be optimized
 		response = send(client_socket, buffer, strlen(buffer), 0);
 	}

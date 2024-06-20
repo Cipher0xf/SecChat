@@ -1,4 +1,4 @@
-treer -d ./ -e proj_tree.md  -i "/.git|.vscode|bin/"
+treer -d ./ -e proj_tree.md  -i "/.git|.vscode|img|bin/"
 
 g++ -I./include -o ./bin/util_test ./src/test/util_test.cpp ./src/crypto/util.cpp
 g++ -I./include -o ./bin/RSA_test ./src/test/RSA_test.cpp ./src/crypto/pk_crypto/RSA.cpp ./src/crypto/util.cpp
@@ -8,12 +8,3 @@ g++ -I./include -o ./bin/MD5_test ./src/test/MD5_test.cpp ./src/crypto/hash/MD5.
 g++ -I./include -o ./bin/server ./src/main/server/server.cpp -lwsock32 ./src/crypto/util.cpp ./src/crypto/pk_crypto/RSA.cpp ./src/crypto/pk_crypto/DSA.cpp ./src/crypto/sk_crypto/AES.cpp ./src/crypto/hash/MD5.cpp
 g++ -I./include -o ./bin/client ./src/main/client/client.cpp -lwsock32 ./src/crypto/util.cpp ./src/crypto/pk_crypto/RSA.cpp ./src/crypto/pk_crypto/DSA.cpp ./src/crypto/sk_crypto/AES.cpp ./src/crypto/hash/MD5.cpp
 g++ -I./include -o ./bin/chat ./src/main/client/chat.cpp ./src/crypto/sk_crypto/AES.cpp ./src/crypto/util.cpp
-
-./bin/util_test
-./bin/RSA_test
-./bin/DSA_test
-./bin/AES_test
-./bin/MD5_test
-./bin/server
-./bin/client
-./bin/chat

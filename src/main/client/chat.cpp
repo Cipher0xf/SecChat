@@ -58,6 +58,7 @@ int main()
         time_t t = temp.timestamp;
         struct tm *tm_info = localtime(&t);
         strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
+        char *msg=aes.decrypt(temp.content);
         printf("<<--------------------------------------------------\n%s\n%s:\n%s\n-------------------------------------------------->>\n", time_str, temp.src_name, temp.content);
     }
     fclose(fp3);
@@ -77,6 +78,7 @@ int main()
                 struct tm *tm_info = localtime(&t);
                 strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_info);
                 printf("<<--------------------------------------------------\n%s\n%s:\n%s\n-------------------------------------------------->>\n", time_str, temp.src_name, temp.content);
+                current_seq = temp.seq;
             }
         }
     }

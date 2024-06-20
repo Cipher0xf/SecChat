@@ -326,7 +326,7 @@ DWORD WINAPI subThread(LPVOID lpParameter)
 		}
 		else
 		{
-			printf("<<--------------------------------------------------\n%s send to %s:\n%s\n-------------------------------------------------->>\n", src.user_name, dst_name, buffer);
+			// printf("<<--------------------------------------------------\n%s send to %s:\n%s\n-------------------------------------------------->>\n", src.user_name, dst_name, buffer);
 			uint64_t last_seq = 0;
 			FILE *fp3 = fopen(chat_address, "r");
 			chatRecord temp;
